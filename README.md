@@ -1,4 +1,4 @@
-# Vertical Federated Learning with Flower Using Scikit-learn Model
+# Vertical Federated Learning with Flower Using Model From Scikit-learn
 
 This example will showcase how we can perform Vertical Federated Learning with
 Flower using model from scikit-learn. We'll be using the [Titanic dataset](https://www.kaggle.com/competitions/titanic/data)
