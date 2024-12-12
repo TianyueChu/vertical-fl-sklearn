@@ -1,16 +1,13 @@
 from pathlib import Path
-from logging import WARN
-import torch.nn as nn
+from logging import WARNING
+
 import numpy as np
 import pandas as pd
-import torch.nn as nn
+
 from flwr.common.logger import log
 
 from datasets import Dataset
 from flwr_datasets.partitioner import IidPartitioner
-
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.linear_model import LogisticRegression
 
 
 NUM_VERTICAL_SPLITS = 3

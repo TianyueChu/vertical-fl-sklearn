@@ -5,6 +5,7 @@ from vertical_fl.strategy import Strategy
 from vertical_fl.task import process_dataset
 
 
+
 def server_fn(context: Context) -> ServerAppComponents:
     """Construct components that set the ServerApp behaviour."""
 
@@ -13,6 +14,7 @@ def server_fn(context: Context) -> ServerAppComponents:
 
     # Define the strategy
     strategy = Strategy(processed_df["Survived"].values)
+
 
     # Construct ServerConfig
     num_rounds = context.run_config["num-server-rounds"]

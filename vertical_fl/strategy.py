@@ -1,17 +1,10 @@
-from typing import Optional, List, Union, Any
-
 import flwr as fl
-
-
-from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays, Parameters
+from logging import WARNING
+from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays
 from flwr.server import ClientManager
-from numpy import ndarray, dtype, floating
-from numpy._typing import _64Bit
 from sklearn.linear_model import LogisticRegression
 import numpy as np
-
-from flwr.common import Parameters
-
+from flwr.common.logger import log
 
 
 class Strategy(fl.server.strategy.FedAvg):
@@ -21,12 +14,13 @@ class Strategy(fl.server.strategy.FedAvg):
         self.labels = np.array(labels).reshape(-1, 1)
         self.initial_parameters = [np.random.randn(1, 10), np.random.randn(1)]
 
+
     def initialize_parameters(
         self, client_manager: ClientManager
-    ) -> list[Union[float, ndarray[Any, dtype[floating[_64Bit]]]]]:
+    ):
         initial_parameters = self.initial_parameters
         self.initial_parameters = None  # Don't keep initial parameters in memory
-        return initial_parameters
+        return ndarrays_to_parameters(initial_parameters)
 
     def aggregate_fit(
         self,
@@ -34,7 +28,7 @@ class Strategy(fl.server.strategy.FedAvg):
         results,
         failures,
     ):
-        print("results", results)
+
         # Do not aggregate if there are failures and failures are not accepted
         if not self.accept_failures and failures:
             return None, {}
@@ -45,16 +39,17 @@ class Strategy(fl.server.strategy.FedAvg):
         ]
 
         feature_aggregated = np.concatenate(feature_results, axis=1)
-        
+
         # Train logistic regression on aggregated embeddings
         self.model.fit(feature_aggregated.T, self.labels.ravel())
-        
+
         # Get the feature number
-        feature_nums = [fn
-            for _, _, fn in results
-        ]
-        # ensure the number of feature is related to the id
-        print("feature numbers",feature_nums)
+        feature_nums = [fn for _, _, fn in results]
+
+        # Raise an error if feature_nums is empty
+        if not feature_nums:
+            raise ValueError(
+                f"The feature_nums list is empty: {feature_nums}. Ensure that results contain valid feature numbers.")
 
         # Extract updated parameters
         coefs = self.model.coef_.flatten().split([feature_nums[0],feature_nums[1], feature_nums[2]], dim=1)
