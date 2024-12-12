@@ -7,3 +7,8 @@ more details below, but the main idea of Vertical Federated Learning is that
 each client is holding different feature sets of the same dataset and that the
 server is holding the labels of this dataset.
 
+## Install dependencies 
+Install the dependencies defined in pyproject.toml
+
+`pip install .`
+

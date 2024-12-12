@@ -1,10 +1,16 @@
+from typing import Optional, List, Union, Any
+
 import flwr as fl
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays
+
+
+from flwr.common import ndarrays_to_parameters, parameters_to_ndarrays, Parameters
+from flwr.server import ClientManager
+from numpy import ndarray, dtype, floating
+from numpy._typing import _64Bit
 from sklearn.linear_model import LogisticRegression
 import numpy as np
+
+from flwr.common import Parameters
 
 
 
@@ -13,6 +19,14 @@ class Strategy(fl.server.strategy.FedAvg):
         super().__init__(*args, **kwargs)
         self.model = LogisticRegression(max_iter=1000)
         self.labels = np.array(labels).reshape(-1, 1)
+        self.initial_parameters = [np.random.randn(1, 10), np.random.randn(1)]
+
+    def initialize_parameters(
+        self, client_manager: ClientManager
+    ) -> list[Union[float, ndarray[Any, dtype[floating[_64Bit]]]]]:
+        initial_parameters = self.initial_parameters
+        self.initial_parameters = None  # Don't keep initial parameters in memory
+        return initial_parameters
 
     def aggregate_fit(
         self,
@@ -20,27 +34,35 @@ class Strategy(fl.server.strategy.FedAvg):
         results,
         failures,
     ):
+        print("results", results)
         # Do not aggregate if there are failures and failures are not accepted
         if not self.accept_failures and failures:
             return None, {}
 
         # Convert results
-        embedding_results = [
-            torch.from_numpy(parameters_to_ndarrays(fit_res.parameters)[0])
-            for _, fit_res in results
+        feature_results = [parameters_to_ndarrays(fit_res.parameters)[0]
+            for _, fit_res, _ in results
         ]
-        embeddings_aggregated = np.concatenate(embedding_results, axis=1)
+
+        feature_aggregated = np.concatenate(feature_results, axis=1)
         
         # Train logistic regression on aggregated embeddings
-        self.model.fit(embeddings_aggregated.T, self.labels.ravel())
+        self.model.fit(feature_aggregated.T, self.labels.ravel())
+        
+        # Get the feature number
+        feature_nums = [fn
+            for _, _, fn in results
+        ]
+        # ensure the number of feature is related to the id
+        print("feature numbers",feature_nums)
 
         # Extract updated parameters
-        parameters_aggregated = ndarrays_to_parameters(
-            [self.model.coef_.flatten(), self.model.intercept_]
-        )
+        coefs = self.model.coef_.flatten().split([feature_nums[0],feature_nums[1], feature_nums[2]], dim=1)
+        np_coefs = [coef.numpy() for coef in coefs]
+        parameters_aggregated = ndarrays_to_parameters(np_coefs)
 
         # Evaluate accuracy
-        predictions = self.model.predict(embeddings_aggregated.T)
+        predictions = self.model.predict(feature_aggregated.T)
         correct = np.sum(predictions.reshape(-1, 1) == self.labels)
         accuracy = correct / len(self.labels) * 100
 

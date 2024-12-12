@@ -135,22 +135,3 @@ def _partition_data_vertically(df, all_keywords):
 
 
 
-class ClientModel(BaseEstimator, TransformerMixin):
-    def __init__(self, input_size):
-        self.model = LogisticRegression(
-            max_iter=1000, 
-            solver='lbfgs', 
-            multi_class='multinomial'
-        )
-        self.input_size = input_size
-
-    def fit(self, X, y):
-        self.model.fit(X, y)
-        return self
-
-    def transform(self, X):
-        logits = self.model.decision_function(X)
-        return logits.reshape(-1, 4)
-
-    def get_parameters(self):
-        return self.model.coef_, self.model.intercept_
