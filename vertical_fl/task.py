@@ -12,7 +12,6 @@ from flwr_datasets.partitioner import IidPartitioner
 
 NUM_VERTICAL_SPLITS = 3
 
-
 def _bin_age(age_series):
     bins = [-np.inf, 10, 40, np.inf]
     labels = ["Child", "Adult", "Elderly"]

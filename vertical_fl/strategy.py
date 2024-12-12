@@ -35,30 +35,31 @@ class Strategy(fl.server.strategy.FedAvg):
 
         # Convert results
         feature_results = [parameters_to_ndarrays(fit_res.parameters)[0]
-            for _, fit_res, _ in results
+            for _, fit_res in results
         ]
+
+        feature_nums = [parameters_to_ndarrays(fit_res.parameters)[1]
+                           for _, fit_res in results
+                           ]
+        ## [array(9),array(11)]
 
         feature_aggregated = np.concatenate(feature_results, axis=1)
 
         # Train logistic regression on aggregated embeddings
-        self.model.fit(feature_aggregated.T, self.labels.ravel())
-
-        # Get the feature number
-        feature_nums = [fn for _, _, fn in results]
-
-        # Raise an error if feature_nums is empty
-        if not feature_nums:
-            raise ValueError(
-                f"The feature_nums list is empty: {feature_nums}. Ensure that results contain valid feature numbers.")
+        self.model.fit(feature_aggregated, self.labels.ravel())
 
         # Extract updated parameters
-        coefs = self.model.coef_.flatten().split([feature_nums[0],feature_nums[1], feature_nums[2]], dim=1)
-        np_coefs = [coef.numpy() for coef in coefs]
+        split_points = np.cumsum(feature_nums)[:-1]
+        log(WARNING,f'split_points={split_points}')
+        log(WARNING,f'number of coef ={len(self.model.coef_.flatten())}')
+        coefs = np.split(self.model.coef_.flatten(), split_points)
+        np_coefs = [coef.reshape(1, -1) for coef in coefs]
         parameters_aggregated = ndarrays_to_parameters(np_coefs)
 
+
         # Evaluate accuracy
-        predictions = self.model.predict(feature_aggregated.T)
-        correct = np.sum(predictions.reshape(-1, 1) == self.labels)
+        predictions = self.model.predict(feature_aggregated)
+        correct = np.sum(predictions.reshape(-1, 1) == self.labels.reshape(-1, 1))
         accuracy = correct / len(self.labels) * 100
 
         metrics_aggregated = {"accuracy": accuracy}

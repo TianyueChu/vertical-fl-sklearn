@@ -13,7 +13,7 @@ def server_fn(context: Context) -> ServerAppComponents:
     processed_df, _ = process_dataset()
 
     # Define the strategy
-    strategy = Strategy(processed_df["Survived"].values)
+    strategy = Strategy(processed_df["Survived"].values, fraction_fit=1.0)
 
 
     # Construct ServerConfig

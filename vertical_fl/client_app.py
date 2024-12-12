@@ -24,15 +24,17 @@ class FlowerClient(NumPyClient):
     def fit(self, parameters, config):
         # if the length of the parameters is 2, which means only coef and interception
         if len(parameters) == 2:
-            log(WARNING, f"parameters is:{parameters}")
+            log(WARNING, f"Initialize parameters")
             scale = 0.1
-            beta = np.random.uniform(-scale, scale, size=self.data.shape[1])
-            result = self.model.multiply(self.data, beta)
+            beta = np.random.uniform(-scale, scale, size=(self.data.shape[1], 1))
         else:
-            result = self.model.multiply(self.data, parameters[int(self.v_split_id)])
-        log(WARNING,f"Feature size for client {self.v_split_id}: {self.data.shape[1]}")
-        return [result, self.data.shape[1]], 1, {}
+            beta = parameters[int(self.v_split_id)][0].reshape(-1, 1)
 
+        # Element-wise multiplication
+        result = self.model.elementwise_multiply(self.data, beta)
+        log(WARNING, f"Feature number: {self.data.shape[1]}")
+
+        return [result,self.data.shape[1]], 1, {}
 
     def evaluate(self, parameters, config):
         eval_result = 0.0
@@ -44,7 +46,6 @@ def client_fn(context: Context):
     partition_id = context.node_config["partition-id"]
     num_partitions = context.node_config["num-partitions"]
     partition, v_split_id = load_data(partition_id, num_partitions=num_partitions)
-    log(WARNING, f"Client initialized with v_split_id {v_split_id}")
     lr = context.run_config["learning-rate"]
     return FlowerClient(v_split_id, partition, lr).to_client()
 
@@ -52,10 +53,10 @@ class ClientModel:
     def __init__(self, input_size):
         self.input_size = input_size
 
-    def multiply(self, data, beta):
-        if len(beta) != data.shape[1]:
-            raise ValueError(f"Expected beta of size {data.shape[1]}, but got {len(beta)}")
-        result = np.dot(data, beta)
+    def elementwise_multiply(self, data, beta):
+        if beta.shape[0] != data.shape[1]:
+            raise ValueError(f"Expected beta of size {data.shape[1]}, but got {beta.shape[0]}")
+        result = data * beta.T
         return result
 
 app = ClientApp(
