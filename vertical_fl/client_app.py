@@ -46,6 +46,7 @@ def client_fn(context: Context):
     partition_id = context.node_config["partition-id"]
     num_partitions = context.node_config["num-partitions"]
     partition, v_split_id = load_data(partition_id, num_partitions=num_partitions)
+    log(WARNING, f"split_id: {v_split_id}")
     lr = context.run_config["learning-rate"]
     return FlowerClient(v_split_id, partition, lr).to_client()
 

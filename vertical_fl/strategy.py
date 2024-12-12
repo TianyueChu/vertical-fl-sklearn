@@ -41,7 +41,6 @@ class Strategy(fl.server.strategy.FedAvg):
         feature_nums = [parameters_to_ndarrays(fit_res.parameters)[1]
                            for _, fit_res in results
                            ]
-        ## [array(9),array(11)]
 
         feature_aggregated = np.concatenate(feature_results, axis=1)
 
